@@ -100,78 +100,79 @@ function overwriteDns(params) {
 
 // 覆写代理组
 function overwriteProxyGroups(params) {
-    // 从 params.proxies 中收集所有订阅节点的名字（如果存在）
-    const allProxyNames = Array.isArray(params.proxies) ? params.proxies.map(p => p.name).filter(Boolean) : [];
+    const dedupePreserveOrder = (arr) => {
+        const seen = new Set();
+        return arr.filter(x => {
+            if (!x) return false;
+            if (seen.has(x)) return false;
+            seen.add(x);
+            return true;
+        });
+    };
+
+    let allProxyNames = [];
+    if (Array.isArray(params.proxies) && params.proxies.length) {
+        allProxyNames = params.proxies.map(p => (typeof p === 'string' ? p : (p && p.name) || '')).filter(Boolean);
+    }
+    if (allProxyNames.length === 0 && params["proxy-providers"]) {
+        const providerKeys = Object.keys(params["proxy-providers"] || {});
+        for (const key of providerKeys) {
+            const provider = params["proxy-providers"][key];
+            if (provider && Array.isArray(provider.proxies) && provider.proxies.length) {
+                const names = provider.proxies.map(p => (typeof p === 'string' ? p : (p && p.name) || '')).filter(Boolean);
+                allProxyNames.push(...names);
+            }
+        }
+    }
+    if (allProxyNames.length === 0 && Array.isArray(params.proxyProviders)) {
+        allProxyNames = params.proxyProviders.map(p => (typeof p === 'string' ? p : (p && p.name) || '')).filter(Boolean);
+    }
+    allProxyNames = dedupePreserveOrder(allProxyNames);
 
     const manualProxyGroups = [
-        {
-            name: "PROXY",
-            type: "select",
-            url: "http://www.gstatic.com/generate_204",
-            interval: 600,
-            timeout: 3000,
-            "include-all": true
-        },
-        {
-            name: "Twitter",
-            type: "select",
-            url: "http://www.gstatic.com/generate_204",
-            interval: 600,
-            timeout: 3000,
-            proxies: ["PROXY"],
-            "include-all": true
-        },
-        {
-            name: "Google",
-            type: "select",
-            url: "http://www.gstatic.com/generate_204",
-            interval: 600,
-            timeout: 3000,
-            proxies: ["PROXY"],
-            "include-all": true
-        },
-        {
-            name: "Streaming",
-            type: "select",
-            url: "http://www.gstatic.com/generate_204",
-            interval: 600,
-            timeout: 3000,
-            proxies: ["PROXY"],
-            "include-all": true
-        },
-        {
-            name: "AI",
-            type: "select",
-            url: "http://www.gstatic.com/generate_204",
-            interval: 600,
-            timeout: 3000,
-            proxies: ["PROXY"],
-            "include-all": true
-        },
-        {
-            name: "Telegram",
-            type: "select",
-            url: "http://www.gstatic.com/generate_204",
-            interval: 600,
-            timeout: 3000,
-            proxies: ["PROXY"],
-            "include-all": true
-        }
+        { name: "PROXY", type: "select", url: "http://www.gstatic.com/generate_204", interval: 600, timeout: 3000 },
+        { name: "Twitter", type: "select", url: "http://www.gstatic.com/generate_204", interval: 600, timeout: 3000, proxies: ["PROXY"], "include-all": true },
+        { name: "Google", type: "select", url: "http://www.gstatic.com/generate_204", interval: 600, timeout: 3000, proxies: ["PROXY"], "include-all": true },
+        { name: "Streaming", type: "select", url: "http://www.gstatic.com/generate_204", interval: 600, timeout: 3000, proxies: ["PROXY"], "include-all": true },
+        { name: "AI", type: "select", url: "http://www.gstatic.com/generate_204", interval: 600, timeout: 3000, proxies: ["PROXY"], "include-all": true },
+        { name: "Telegram", type: "select", url: "http://www.gstatic.com/generate_204", interval: 600, timeout: 3000, proxies: ["PROXY"], "include-all": true }
     ];
 
-    // 兼容性处理：如果有人写成 proxies: "PROXY"，把它转成数组（防御性）
     const cleaned = manualProxyGroups.map(g => {
         if (g.proxies && typeof g.proxies === "string") g.proxies = [g.proxies];
-        // 如果 proxies 为空且是 PROXY 组，就把所有代理名填进去
-		if ((!g.proxies || g.proxies.length === 0) && g.name === "PROXY") {
-			if (allProxyNames && allProxyNames.length) {
-				g.proxies = allProxyNames;
-			} else {
-				delete g.proxies;
-			}
-		}
+
+        if (g.name === "PROXY") {
+            if (allProxyNames.length) {
+                g.proxies = allProxyNames.slice();
+                if (g["include-all"]) delete g["include-all"];
+            } else {
+                if (g.proxies) delete g.proxies;
+                g["include-all"] = true;
+            }
+        } else {
+            const orig = Array.isArray(g.proxies) ? g.proxies.slice() : [];
+            const origFiltered = orig.filter(item => item !== "PROXY");
+            const expanded = ["PROXY"];
+            if (allProxyNames.length) expanded.push(...allProxyNames);
+            expanded.push(...origFiltered);
+            g.proxies = dedupePreserveOrder(expanded);
+            if (allProxyNames.length && g["include-all"]) delete g["include-all"];
+        }
         return g;
     });
+
+    if (allProxyNames.length === 0 && params["proxy-providers"]) {
+        const orderedProviderObj = {};
+        const orderHint = Array.isArray(params.proxyProviderOrder) ? params.proxyProviderOrder : Object.keys(params["proxy-providers"]);
+        for (const k of orderHint) {
+            if (params["proxy-providers"][k]) orderedProviderObj[k] = params["proxy-providers"][k];
+        }
+        for (const k of Object.keys(params["proxy-providers"])) {
+            if (!orderedProviderObj[k]) orderedProviderObj[k] = params["proxy-providers"][k];
+        }
+        params["proxy-providers"] = orderedProviderObj;
+    }
+
     params["proxy-groups"] = cleaned;
 }
 

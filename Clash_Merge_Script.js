@@ -23,6 +23,8 @@ function overwriteBasicOptions(params) {
           "store-selected": true
         },
         "unified-delay": true,
+		"geo-auto-update": true,
+		"geo-update-interval": 24,
 
         "external-controller": "",
         "secret": "Redzone05",

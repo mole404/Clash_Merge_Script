@@ -313,8 +313,6 @@ function overwriteRules(params) {
         "RULE-SET,google_domain,Google",
         "RULE-SET,google_ip,Google,no-resolve",
         "RULE-SET,applications,DIRECT",
-        "DOMAIN,clash.razord.top,DIRECT",
-        "DOMAIN,yacd.haishan.me,DIRECT",
         "RULE-SET,private,DIRECT",
         "RULE-SET,icloud,DIRECT",
         "RULE-SET,apple,DIRECT",

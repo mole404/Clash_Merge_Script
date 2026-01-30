@@ -27,7 +27,6 @@ function overwriteBasicOptions(params) {
 		"geo-update-interval": 24,
 
         "external-controller": "",
-        "secret": "Redzone05",
         "external-controller-cors": {
           "allow-private-network": true
         },

@@ -300,6 +300,8 @@ function overwriteRules(params) {
     };
 
     const rules = [
+        "DOMAIN-SUFFIX,wd-red.com,DIRECT",
+        "DOMAIN-SUFFIX,api.wd-red.com,DIRECT",
         "DOMAIN,update.miui.com,REJECT",
         "DOMAIN-SUFFIX,steamcontent.com,DIRECT",
         "DOMAIN-SUFFIX,adobe.io,REJECT",

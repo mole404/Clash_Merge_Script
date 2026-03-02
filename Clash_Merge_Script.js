@@ -99,80 +99,85 @@ function overwriteDns(params) {
 
 // 覆写代理组
 function overwriteProxyGroups(params) {
-    const dedupePreserveOrder = (arr) => {
-        const seen = new Set();
-        return arr.filter(x => {
-            if (!x) return false;
-            if (seen.has(x)) return false;
-            seen.add(x);
-            return true;
-        });
-    };
-
-    let allProxyNames = [];
-    if (Array.isArray(params.proxies) && params.proxies.length) {
-        allProxyNames = params.proxies.map(p => (typeof p === 'string' ? p : (p && p.name) || '')).filter(Boolean);
-    }
-    if (allProxyNames.length === 0 && params["proxy-providers"]) {
-        const providerKeys = Object.keys(params["proxy-providers"] || {});
-        for (const key of providerKeys) {
-            const provider = params["proxy-providers"][key];
-            if (provider && Array.isArray(provider.proxies) && provider.proxies.length) {
-                const names = provider.proxies.map(p => (typeof p === 'string' ? p : (p && p.name) || '')).filter(Boolean);
-                allProxyNames.push(...names);
+    const dedupe = (arr) => {
+        const s = new Set();
+        const r = [];
+        for (const i of arr) {
+            if (!i) continue;
+            if (!s.has(i)) {
+                s.add(i);
+                r.push(i);
             }
         }
-    }
-    if (allProxyNames.length === 0 && Array.isArray(params.proxyProviders)) {
-        allProxyNames = params.proxyProviders.map(p => (typeof p === 'string' ? p : (p && p.name) || '')).filter(Boolean);
-    }
-    allProxyNames = dedupePreserveOrder(allProxyNames);
+        return r;
+    };
 
-    const manualProxyGroups = [
+    const top = [];
+    if (Array.isArray(params.proxies)) {
+        for (const p of params.proxies) {
+            if (typeof p === "string" && p) top.push(p);
+            else if (p && typeof p === "object" && p.name) top.push(p.name);
+        }
+    }
+
+    const providers = [];
+    if (params["proxy-providers"]) {
+        for (const k of Object.keys(params["proxy-providers"])) {
+            if (k) providers.push(k);
+        }
+    }
+    if (params.proxyProviders) {
+        for (const k of Object.keys(params.proxyProviders)) {
+            if (k) providers.push(k);
+        }
+    }
+
+    const topProxies = dedupe(top);
+    const providerNames = dedupe(providers);
+
+    const groups = [
         { name: "PROXY", type: "select", url: "http://www.gstatic.com/generate_204", interval: 600, timeout: 3000 },
-        { name: "Twitter", type: "select", url: "http://www.gstatic.com/generate_204", interval: 600, timeout: 3000, proxies: ["PROXY"], "include-all": true },
-        { name: "Google", type: "select", url: "http://www.gstatic.com/generate_204", interval: 600, timeout: 3000, proxies: ["PROXY"], "include-all": true },
-        { name: "Streaming", type: "select", url: "http://www.gstatic.com/generate_204", interval: 600, timeout: 3000, proxies: ["PROXY"], "include-all": true },
-        { name: "AI", type: "select", url: "http://www.gstatic.com/generate_204", interval: 600, timeout: 3000, proxies: ["PROXY"], "include-all": true },
-        { name: "Telegram", type: "select", url: "http://www.gstatic.com/generate_204", interval: 600, timeout: 3000, proxies: ["PROXY"], "include-all": true }
+        { name: "Twitter", type: "select", url: "http://www.gstatic.com/generate_204", interval: 600, timeout: 3000 },
+        { name: "Google", type: "select", url: "http://www.gstatic.com/generate_204", interval: 600, timeout: 3000 },
+        { name: "Streaming", type: "select", url: "http://www.gstatic.com/generate_204", interval: 600, timeout: 3000 },
+        { name: "AI", type: "select", url: "http://www.gstatic.com/generate_204", interval: 600, timeout: 3000 },
+        { name: "Telegram", type: "select", url: "http://www.gstatic.com/generate_204", interval: 600, timeout: 3000 }
     ];
 
-    const cleaned = manualProxyGroups.map(g => {
-        if (g.proxies && typeof g.proxies === "string") g.proxies = [g.proxies];
-
+    params["proxy-groups"] = groups.map(g => {
         if (g.name === "PROXY") {
-            if (allProxyNames.length) {
-                g.proxies = allProxyNames.slice();
-                if (g["include-all"]) delete g["include-all"];
+            if (topProxies.length) {
+                g.proxies = topProxies.slice();
+                if (providerNames.length) g.use = providerNames.slice();
+            } else if (providerNames.length) {
+                g.use = providerNames.slice();
             } else {
-                if (g.proxies) delete g.proxies;
                 g["include-all"] = true;
             }
         } else {
-            const orig = Array.isArray(g.proxies) ? g.proxies.slice() : [];
-            const origFiltered = orig.filter(item => item !== "PROXY");
-            const expanded = ["PROXY"];
-            if (allProxyNames.length) expanded.push(...allProxyNames);
-            expanded.push(...origFiltered);
-            g.proxies = dedupePreserveOrder(expanded);
-            if (allProxyNames.length && g["include-all"]) delete g["include-all"];
+            const newGroup = {
+                name: g.name,
+                type: g.type,
+                url: g.url,
+                interval: g.interval,
+                timeout: g.timeout,
+                proxies: ["PROXY", ...topProxies]
+            };
+            if (providerNames.length) {
+                newGroup.use = providerNames.slice();
+            }
+            return newGroup;
         }
         return g;
     });
 
-    if (allProxyNames.length === 0 && params["proxy-providers"]) {
-        const orderedProviderObj = {};
-        const orderHint = Array.isArray(params.proxyProviderOrder) ? params.proxyProviderOrder : Object.keys(params["proxy-providers"]);
-        for (const k of orderHint) {
-            if (params["proxy-providers"][k]) orderedProviderObj[k] = params["proxy-providers"][k];
-        }
+    if (params["proxy-providers"]) {
+        const ordered = {};
         for (const k of Object.keys(params["proxy-providers"])) {
-            if (!orderedProviderObj[k]) orderedProviderObj[k] = params["proxy-providers"][k];
+            ordered[k] = params["proxy-providers"][k];
         }
-        params["proxy-providers"] = orderedProviderObj;
+        params["proxy-providers"] = ordered;
     }
-
-    params["proxy-groups"] = cleaned;
 }
 
 // 覆写规则

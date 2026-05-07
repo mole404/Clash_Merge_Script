@@ -67,11 +67,6 @@ function overwriteDns(params) {
       "direct-nameserver": [],
       "direct-nameserver-follow-policy": false,
       "nameserver": ["https://dns.alidns.com/dns-query", "https://doh.pub/dns-query", "https://dns.google/dns-query", "tls://223.5.5.5:853", "tls://119.29.29.29:853", "tls://8.8.8.8:853"],
-      "nameserver-policy": {
-        "+.qq.com": ["https://doh.pub/dns-query", "tls://119.29.29.29:853"],
-        "+.tencent.com": ["https://doh.pub/dns-query", "tls://119.29.29.29:853"],
-        "+.weixin.com": ["https://doh.pub/dns-query", "tls://119.29.29.29:853"]
-      },
       "enhanced-mode": "fake-ip",
       "fake-ip-range": "198.18.0.1/16",
       "fake-ip-filter-mode": "blacklist",

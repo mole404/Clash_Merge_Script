@@ -1,4 +1,4 @@
-// Clash Merge Script - 全局覆写脚本
+// Clash Merge Script
 
 function main(params) {
     params.proxies = Array.isArray(params.proxies) ? params.proxies : [];
@@ -9,7 +9,7 @@ function main(params) {
     return params;
 }
 
-// 覆写核心设置
+// Core Settings
 function overwriteBasicOptions(params) {
     const otherOptions = {
         "mixed-port": 7890,
@@ -51,7 +51,7 @@ function overwriteBasicOptions(params) {
     Object.assign(params, otherOptions);
 }
 
-// 覆写DNS
+// DNS
 function overwriteDns(params) {
     const dnsOptions = {
       "enable": true,
@@ -69,6 +69,7 @@ function overwriteDns(params) {
       "nameserver": ["https://dns.alidns.com/dns-query", "https://doh.pub/dns-query", "https://dns.google/dns-query", "tls://223.5.5.5:853", "tls://119.29.29.29:853", "tls://8.8.8.8:853"],
       "enhanced-mode": "fake-ip",
       "fake-ip-range": "198.18.0.1/16",
+      "fake-ip-range6": "fdfe:dcba:9876::1/64",
       "fake-ip-filter-mode": "blacklist",
       "fake-ip-filter": [
         "+.lan",
@@ -92,7 +93,7 @@ function overwriteDns(params) {
     params.dns = dnsOptions;
 }
 
-// 覆写代理组
+// Proxy Groups
 function overwriteProxyGroups(params) {
     const dedupe = (arr) => {
         const s = new Set();
@@ -175,7 +176,7 @@ function overwriteProxyGroups(params) {
     }
 }
 
-// 覆写规则
+// Rules
 function overwriteRules(params) {
     const ruleProviders = {
         icloud: {
